@@ -4,6 +4,7 @@
 #include <memory>
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
+#include "utility\Vertex.h"
 
 #define _USE_MATH_DEFINES
 #include <math.h>
@@ -314,92 +315,57 @@ void Model::Parse(const std::string& vertexData, const std::string& indexData, c
 
 	m_Verteces = verteces.size();
 
-	unsigned long counter = 0;
-	unsigned long skips = 0;
-
-	std::vector<unsigned long> checked;
-	std::vector<unsigned long> nChecked;
+	std::vector<Vertex> verts;
 
 	std::vector<unsigned long> vIndeces;
 
-	for (unsigned long i = 0; i < indeces.size(); i++)
+	unsigned long skips = 0;
+
+	verts.push_back(Vertex(verteces[indeces[0]], vNormals[vIndeces[0]], 0));
+	vIndeces.push_back(0);
+
+	for (unsigned long i = 1; true; i++)
 	{
-		bool skip = true;
+		Vertex vert = verts[i];
 
-		if (i == 0)
+		if (vert.vertex != verteces[indeces[i - skips]] || vert.normal != vNormals[vIndeces[i - skips]])
 		{
-			checked.push_back(indeces[i]);   // Rework this.
-			nChecked.push_back(nIndeces[i]);
-
-			for (unsigned long n = 0; n < indeces.size(); n++)
-			{
-				if (indeces[n] == indeces[i] && nIndeces[n] == nIndeces[i])
-				{
-					vIndeces.push_back(n);
-					break;
-				}
-			}
-
-			continue;
+			verts.push_back(Vertex(verteces[indeces[i - skips]], vNormals[nIndeces[i - skips]], i + skips));
+			vIndeces.push_back(i + skips);
 		}
-		
-		for (unsigned long j = 0; j < checked.size(); j++)
+		else if (vert.vertex == verteces[indeces[i - skips]] && vert.normal == vNormals[vIndeces[i - skips]])
 		{
-			if (!(checked[j] == indeces[i] && nChecked[j] == nIndeces[i]))
+			for (Vertex v : verts)
 			{
-				skip = false;
-			}
-			else
-			{
-				skip = true;
-
-				for (unsigned long n = 0; n < indeces.size(); n++)
+				if (v.vertex == verteces[indeces[i - skips]], v.normal == vNormals[nIndeces[i - skips]])
 				{
-					if (indeces[n] == indeces[i] && nIndeces[n] == nIndeces[i])
-					{
-						vIndeces.push_back(n % checked.size());
-						break;
-					}
+					vIndeces.push_back(v.index);
 				}
-
-				skips++;
-				break;
 			}
+			skips++;
 		}
-
-		if (!skip)
+		else
 		{
-			checked.push_back(indeces[i]);
-			nChecked.push_back(nIndeces[i]);
-
-			for (unsigned long n = 0; n < indeces.size(); n++)
-			{
-				if (indeces[n] == indeces[i] && nIndeces[n] == nIndeces[i])
-				{
-					vIndeces.push_back(n - skips);
-					break;
-				}
-			}
+			break;
 		}
 	}
 
-	std::unique_ptr<float> vertexArray(new float[6 * checked.size()]);
-	std::unique_ptr<unsigned int> indexArray(new unsigned int[checked.size() + skips]);
+	std::unique_ptr<float> vertexArray(new float[6 * verts.size()]);
+	std::unique_ptr<unsigned int> indexArray(new unsigned int[vIndeces.size()]);
 	float vData[3];
 	float nData[3];
 
-	for (unsigned int i = 0; i < checked.size(); i++)
+	unsigned long counter = 0;
+
+	for (unsigned int i = 0; i < verts.size(); i++)
 	{
-		Vector3 vertex = verteces[checked[i] - 1];
-		Vector3 vNormal = vNormals[nChecked[i] - 1];
+		vData[0] = verts[i].vertex.x;
+		vData[1] = verts[i].vertex.y;
+		vData[2] = verts[i].vertex.z;
 
-		vData[0] = vertex.x;
-		vData[1] = vertex.y;
-		vData[2] = vertex.z;
-
-		nData[0] = vNormal.x;
-		nData[1] = vNormal.y;
-		nData[2] = vNormal.z;
+		nData[0] = verts[i].normal.x;
+		nData[1] = verts[i].normal.y;
+		nData[2] = verts[i].normal.z;
 
 		memcpy(vertexArray.get() + sizeof(vData) / sizeof(float) * counter, vData, sizeof(vData));
 		counter++;
@@ -407,16 +373,16 @@ void Model::Parse(const std::string& vertexData, const std::string& indexData, c
 		counter++;
 	}
 
-	unsigned long count = checked.size() + skips;
+	unsigned long count = vIndeces.size();
 
 	for (int i = 0; i < count; i++)
 	{
 		indexArray.get()[i] = vIndeces[i]; // TODO: Debug the parsing of the index array.
 	}
 
-	vbo = new VertexBuffer(vertexArray.get(), sizeof(float) * 6 * checked.size());
+	vbo = new VertexBuffer(vertexArray.get(), sizeof(float) * 6 * verts.size());
 	ibo = new IndexBuffer(indexArray.get(), count);
-	ibo->SetVertexCount(indeces.size());
+	ibo->SetVertexCount(count);
 	
 	layout = new BufferLayout;
 	layout->Push<float>(3);

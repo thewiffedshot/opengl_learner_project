@@ -30,6 +30,16 @@ struct Vector2
 		this->x -= vec.x;
 		this->y -= vec.y;
 	}
+
+	bool operator!=(Vector2 vec)
+	{
+		return vec.x != this->x || vec.y != this->y;
+	}
+
+	bool operator==(Vector2 vec)
+	{
+		return vec.x == this->x && vec.y == this->y;
+	}
 };
 
 struct Vector3
@@ -63,6 +73,16 @@ struct Vector3
 		this->x -= vec.x;
 		this->y -= vec.y;
 		this->z -= vec.z;
+	}
+
+	bool operator!=(Vector3 vec)
+	{
+		return vec.x != this->x || vec.y != this->y || vec.z != this->z;
+	}
+
+	bool operator==(Vector3 vec)
+	{
+		return vec.x == this->x && vec.y == this->y && vec.z == this->z;
 	}
 };
 
@@ -99,5 +119,15 @@ struct Vector4
 		this->y -= vec.y;
 		this->z -= vec.z;
 		this->w -= vec.w;
+	}
+
+	bool operator!=(Vector4 vec)
+	{
+		return vec.x != this->x || vec.y != this->y || vec.z != this->z || vec.w != this->w;
+	}
+
+	bool operator==(Vector4 vec)
+	{
+		return vec.x == this->x && vec.y == this->y && vec.z == this->z && vec.w == this->w;
 	}
 };
